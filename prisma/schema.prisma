@@ -1,0 +1,761 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Role {
+  id          String       @id @default(cuid())
+  name        String       @unique // ADMIN, MANAGER, TECHNICIAN, WAREHOUSE, ACCOUNTANT, SUPPORT
+  displayName String
+  description String?
+  isSystem    Boolean      @default(false)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  users       User[]
+  permissions Permission[]
+  kpis        KPI[]
+}
+
+model Permission {
+  id                   String  @id @default(cuid())
+  roleId               String
+  role                 Role    @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  resource             String  // CUSTOMERS, SALES, WAREHOUSE, INSTALLATIONS, SUPPORT, FINANCE, REPORTS, SETTINGS, USERS, AUDIT
+  canView              Boolean @default(false)
+  canCreate            Boolean @default(false)
+  canEdit              Boolean @default(false)
+  canDelete            Boolean @default(false)
+  canApprove           Boolean @default(false)
+  canExport            Boolean @default(false)
+  canFinanceView       Boolean @default(false)
+  canSensitiveDataView Boolean @default(false)
+
+  @@unique([roleId, resource])
+}
+
+model Branch {
+  id             String          @id @default(cuid())
+  name           String          @unique // Sirdaryo, Andijon, Namangan, Jizzax, Bo'ka, Farg'ona
+  code           String          @unique
+  address        String?
+  phone          String?
+  isActive       Boolean         @default(true)
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  users          User[]
+  customers      Customer[]
+  productSerials ProductSerial[]
+  fiscalModules  FiscalModule[]
+  warehouseStock WarehouseStock[]
+  orders         Order[]
+  installations  Installation[]
+  supportTickets SupportTicket[]
+  stockMovements StockMovement[]
+}
+
+model Department {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  description String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  users       User[]
+}
+
+model Position {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  description String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  users       User[]
+}
+
+model User {
+  id           String         @id @default(cuid())
+  name         String
+  email        String         @unique
+  passwordHash String
+  tempPassword String?        // Admin ko'rib turishi uchun oxirgi o'rnatilgan / vaqtinchalik parol
+  mustChangePassword Boolean  @default(false)
+  roleId       String
+  role         Role           @relation(fields: [roleId], references: [id])
+  branchId     String?
+  branch       Branch?        @relation(fields: [branchId], references: [id])
+  phone        String?
+  avatar       String?
+  isActive     Boolean        @default(true)
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+  auditLogs    AuditLog[]
+  sessions     UserSession[]
+  smsLogs      SmsLog[]
+  managedCustomers Customer[] @relation("CustomerManager")
+  managedOrders    Order[]    @relation("OrderManager")
+  receivedPayments Payment[]  @relation("PaymentReceiver")
+  techTasks        Installation[] @relation("TechnicianTasks")
+  managedInstallations Installation[] @relation("InstallationManager")
+  handledTickets   SupportTicket[] @relation("TicketHandler")
+  notifications    Notification[]
+  
+  departmentId     String?
+  department       Department?    @relation(fields: [departmentId], references: [id])
+  positionId       String?
+  position         Position?      @relation(fields: [positionId], references: [id])
+  employeeProfile  EmployeeProfile?
+  managedEmployees EmployeeProfile[] @relation("EmployeeManager")
+  approvedKPIs     KPIResult[]    @relation("KPIApprover")
+  statusChanges    EmployeeStatusHistory[] @relation("StatusChanger")
+  createdServices  Service[]      @relation("ServiceCreator")
+}
+
+model Customer {
+  id            String            @id @default(cuid())
+  companyName   String
+  inn           String            @unique // STIR
+  companyType   String            @default("MCHJ") // MCHJ, XK, YaTT, AJ
+  legalStatus   String            @default("Faol")
+  tradeMark     String?           // Savdo belgisi / Brand
+  activityType  String?           // Faoliyat turi (Masalan: Chakana savdo, Restoran)
+  oked          String?           // OKED kodi
+  address       String
+  phone         String
+  email         String?
+  bank          String?
+  accountNumber String?
+  mfo           String?
+  director      String?
+  contactPerson String?
+  managerId     String?
+  manager       User?             @relation("CustomerManager", fields: [managerId], references: [id])
+  branchId      String
+  branch        Branch            @relation(fields: [branchId], references: [id])
+  status        String            @default("FAOL") // FAOL, NOFAOL, KUTILMOQDA, BLOKLANGAN
+  ofdStatus     String            @default("ULANGAN") // ULANGAN, ULANMAGAN, MUDDATI_O'TGAN
+  debt          Float             @default(0)
+  balance       Float             @default(0)
+  telegramChatId String?
+  telegramUsername String?
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+  deletedAt     DateTime?
+  contacts      CustomerContact[]
+  outlets       CustomerOutlet[]
+  contracts     CustomerContract[]
+  documents     CustomerDocument[]
+  invoices      CustomerInvoice[]
+  services      CustomerServiceLink[]
+  cases         CustomerCase[]
+  terminals     CustomerTerminal[]
+  posSystems    CustomerPOS[]
+  orders        Order[]
+  payments      Payment[]
+  productSerials ProductSerial[]
+  fiscalModules FiscalModule[]
+  installations Installation[]
+  supportTickets SupportTicket[]
+}
+
+model CustomerContact {
+  id         String   @id @default(cuid())
+  customerId String
+  customer   Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  name       String
+  position   String?
+  phone      String
+  email      String?
+  isMain     Boolean  @default(false)
+  createdAt  DateTime @default(now())
+}
+
+model CustomerOutlet {
+  id          String   @id @default(cuid())
+  customerId  String
+  customer    Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  name        String   // "Markaziy Savdo Do'koni", "Filial #2"
+  address     String
+  landmark    String?  // Mo'ljal
+  phone       String?
+  openedAt    DateTime?
+  status      String   @default("FAOL")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model CustomerContract {
+  id             String    @id @default(cuid())
+  customerId     String
+  customer       Customer  @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  contractNumber String    @unique
+  contractType   String    // "ONKM Xizmat Ko'rsatish", "Litsenziya", "OFD Abonent"
+  startDate      DateTime
+  endDate        DateTime?
+  amount         Float     @default(0)
+  status         String    @default("FAOL") // FAOL, BEKOR_QILINDI, MUDDATI_OTGAN
+  fileUrl        String?
+  notes          String?
+  createdAt      DateTime  @default(now())
+}
+
+model CustomerDocument {
+  id         String   @id @default(cuid())
+  customerId String
+  customer   Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  title      String
+  docType    String   // GUVOHNOMA, SHARTNOMA, AKT, OFD_SERTIFIKAT, BOSHQA
+  fileNumber String?
+  fileSize   String?  // "2.4 MB"
+  fileUrl    String?
+  issuedDate DateTime?
+  createdAt  DateTime @default(now())
+}
+
+model CustomerInvoice {
+  id            String   @id @default(cuid())
+  customerId    String
+  customer      Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  invoiceNumber String   @unique // "INV-2025-0012"
+  invoiceDate   DateTime @default(now())
+  amount        Float    @default(0)
+  vatAmount     Float    @default(0)
+  status        String   @default("TO'LANGAN") // TO'LANGAN, TO'LANMAGAN, BEKOR_QILINDI
+  pdfUrl        String?
+  notes         String?
+  createdAt     DateTime @default(now())
+}
+
+model CustomerServiceLink {
+  id          String    @id @default(cuid())
+  customerId  String
+  customer    Customer  @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  serviceId   String?
+  serviceName String    // "OFD Abonent Xizmati (Yillik)", "ONKM Dasturiy Yangilanish", "24/7 Texnik Servis"
+  serviceType String    @default("ABONENT") // OFD, SOFTWARE, TECH_SERVICE, CONSULTING, ABONENT
+  price       Float     @default(0)
+  monthlyFee  Float     @default(0)
+  outletId    String?
+  outletName  String?
+  startDate   DateTime  @default(now())
+  endDate     DateTime?
+  status      String    @default("FAOL") // FAOL, TO'XTATILGAN
+  notes       String?
+  createdByName String?
+  createdAt   DateTime  @default(now())
+}
+
+model CustomerCase {
+  id          String    @id @default(cuid())
+  customerId  String
+  customer    Customer  @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  caseNumber  String    @unique
+  title       String
+  description String
+  priority    String    @default("ODDIY") // PAST, ODDIY, YUQORI
+  status      String    @default("OCHIQ") // OCHIQ, JARAYONDA, YOPILDI
+  solution    String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+model CustomerTerminal {
+  id           String    @id @default(cuid())
+  customerId   String
+  customer     Customer  @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  tid          String    // Terminal ID (masalan: 99801234)
+  mid          String?   // Merchant ID
+  model        String    // PAX D210, Verifone VX520
+  serialNumber String    @unique
+  bankName     String    // Ipak Yo'li, Kapitalbank, Hamkorbank
+  paymentType  String    @default("HUMO_UZCARD") // HUMO, UZCARD, MULTICARD
+  status       String    @default("FAOL")
+  installedAt  DateTime?
+  createdAt    DateTime  @default(now())
+}
+
+model CustomerPOS {
+  id           String    @id @default(cuid())
+  customerId   String
+  customer     Customer  @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  modelName    String    // PosBank Apex Pro, Sunmi D2s Plus
+  serialNumber String    @unique
+  osType       String    @default("Windows 10 Pro") // Windows, Android
+  ramRom       String?   // "8GB / 128GB SSD"
+  softwareName String?   // "ONKM Retail v4.5"
+  status       String    @default("FAOL")
+  installedAt  DateTime?
+  createdAt    DateTime  @default(now())
+}
+
+model ProductCategory {
+  id          String    @id @default(cuid())
+  name        String    @unique // ONKM, POS, Fiskal modul, Terminal, Printer, 2D scanner, etc.
+  code        String    @unique
+  description String?
+  products    Product[]
+}
+
+model Product {
+  id             String           @id @default(cuid())
+  name           String
+  sku            String           @unique
+  categoryId     String
+  category       ProductCategory  @relation(fields: [categoryId], references: [id])
+  manufacturer   String?
+  model          String?
+  purchasePrice  Float            @default(0)
+  sellingPrice   Float            @default(0)
+  minStock       Int              @default(5)
+  unit           String           @default("dona")
+  hasSerial      Boolean          @default(true)
+  warrantyMonths Int              @default(12)
+  isActive       Boolean          @default(true)
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+  serials        ProductSerial[]
+  stock          WarehouseStock[]
+  orderItems     OrderItem[]
+  movements      StockMovement[]
+}
+
+model ProductSerial {
+  id              String                 @id @default(cuid())
+  productId       String
+  product         Product                @relation(fields: [productId], references: [id])
+  serialNumber    String                 @unique
+  branchId        String
+  branch          Branch                 @relation(fields: [branchId], references: [id])
+  status          String                 @default("OMBORDA") // OMBORDA, REZERV, FILIALDA, MIJOZGA_BERILDI, O'RNATILDI, NOSOZ, QAYTARILDI
+  customerId      String?
+  customer        Customer?              @relation(fields: [customerId], references: [id])
+  orderId         String?
+  order           Order?                 @relation(fields: [orderId], references: [id])
+  installedAt     DateTime?
+  warrantyEndDate DateTime?
+  notes           String?
+  createdAt       DateTime               @default(now())
+  updatedAt       DateTime               @updatedAt
+  history         ProductSerialHistory[]
+}
+
+model ProductSerialHistory {
+  id              String        @id @default(cuid())
+  productSerialId String
+  productSerial   ProductSerial @relation(fields: [productSerialId], references: [id], onDelete: Cascade)
+  fromStatus      String
+  toStatus        String
+  fromBranch      String?
+  toBranch        String?
+  action          String        // KIRIM, TRANSFER, REZERV, ORNATILDI, SERVIS, QAYTARILDI
+  userName        String?
+  notes           String?
+  createdAt       DateTime      @default(now())
+}
+
+model StockMovement {
+  id             String    @id @default(cuid())
+  productId      String
+  product        Product   @relation(fields: [productId], references: [id])
+  branchId       String
+  branch         Branch    @relation(fields: [branchId], references: [id])
+  targetBranchId String?
+  movementType   String    // KIRIM, CHIQIM, TRANSFER, REZERV, UNRESERVE, MIJOZGA_BERISH, QAYTARISH, INVENTARIZATSIYA
+  quantity       Int
+  price          Float?
+  serialNumbers  String?   // "ACLAS-CRV-2001, ACLAS-CRV-2002"
+  reason         String?
+  docNumber      String?
+  userName       String?
+  createdAt      DateTime  @default(now())
+}
+
+model FiscalModule {
+  id              String                @id @default(cuid())
+  serialNumber    String                @unique
+  branchId        String
+  branch          Branch                @relation(fields: [branchId], references: [id])
+  status          String                @default("OMBORDA") // OMBORDA, REZERV, FILIALDA, MIJOZGA_BERILDI, O'RNATILDI, FAOL, NOSOZ, QAYTARILDI
+  customerId      String?
+  customer        Customer?             @relation(fields: [customerId], references: [id])
+  kkmSerialNumber String?
+  installedAt     DateTime?
+  registeredAt    DateTime?
+  warrantyEndDate DateTime?
+  notes           String?
+  createdAt       DateTime              @default(now())
+  updatedAt       DateTime              @updatedAt
+  movements       FiscalModuleHistory[]
+}
+
+model FiscalModuleHistory {
+  id             String       @id @default(cuid())
+  fiscalModuleId String
+  fiscalModule   FiscalModule @relation(fields: [fiscalModuleId], references: [id], onDelete: Cascade)
+  fromLocation   String
+  toLocation     String
+  action         String
+  userId         String?
+  notes          String?
+  createdAt      DateTime     @default(now())
+}
+
+model WarehouseStock {
+  id        String   @id @default(cuid())
+  productId String
+  product   Product  @relation(fields: [productId], references: [id])
+  branchId  String
+  branch    Branch   @relation(fields: [branchId], references: [id])
+  quantity  Int      @default(0)
+  reserved  Int      @default(0)
+  minStock  Int      @default(5)
+  updatedAt DateTime @updatedAt
+
+  @@unique([productId, branchId])
+}
+
+model Order {
+  id                   String          @id @default(cuid())
+  orderNumber          String          @unique
+  customerId           String
+  customer             Customer        @relation(fields: [customerId], references: [id])
+  branchId             String
+  branch               Branch          @relation(fields: [branchId], references: [id])
+  managerId            String
+  manager              User            @relation("OrderManager", fields: [managerId], references: [id])
+  totalAmount          Float           @default(0)
+  discountAmount       Float           @default(0)
+  finalAmount          Float           @default(0)
+  paidAmount           Float           @default(0)
+  debtAmount           Float           @default(0)
+  status               String          @default("YANGI") // YANGI, TASDIQLANDI, REZERVDA, YETKAZILMOQDA, O'RNATILMOQDA, YAKUNLANDI, BEKOR_QILINDI
+  pipelineStage        String          @default("BUYURTMA") // LEAD, TAKLIF, BUYURTMA, TOLOV, REZERV, CHIQARISH, YETKAZISH, ORNATISH, YAKUNLANDI
+  paymentStatus        String          @default("KUTILMOQDA") // KUTILMOQDA, QISMAN_TO'LANGAN, TO'LIQ_TO'LANGAN, QAYTARILGAN
+  deliveryRequired     Boolean         @default(true)
+  installationRequired Boolean         @default(true)
+  notes                String?
+  createdAt            DateTime        @default(now())
+  updatedAt            DateTime        @updatedAt
+  items                OrderItem[]
+  payments             Payment[]
+  installations        Installation[]
+  productSerials       ProductSerial[]
+}
+
+model OrderItem {
+  id         String  @id @default(cuid())
+  orderId    String
+  order      Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productId  String
+  product    Product @relation(fields: [productId], references: [id])
+  quantity   Int     @default(1)
+  unitPrice  Float   @default(0)
+  discount   Float   @default(0)
+  totalPrice Float   @default(0)
+}
+
+model Payment {
+  id            String   @id @default(cuid())
+  paymentNumber String   @unique
+  orderId       String?
+  order         Order?   @relation(fields: [orderId], references: [id])
+  customerId    String
+  customer      Customer @relation(fields: [customerId], references: [id])
+  amount        Float
+  method        String   // NAQD, BANK, CLICK, PAYME, PAYNET, HUMO, UZCARD, BOSHQА
+  status        String   @default("TO'LIQ_TO'LANGAN") // KUTILMOQDA, TO'LIQ_TO'LANGAN, BEKOR_QILINDI
+  receivedById  String
+  receivedBy    User     @relation("PaymentReceiver", fields: [receivedById], references: [id])
+  notes         String?
+  paidAt        DateTime @default(now())
+  createdAt     DateTime @default(now())
+}
+
+model Installation {
+  id              String    @id @default(cuid())
+  taskNumber      String    @unique
+  orderId         String?
+  order           Order?    @relation(fields: [orderId], references: [id])
+  customerId      String
+  customer        Customer  @relation(fields: [customerId], references: [id])
+  branchId        String
+  branch          Branch    @relation(fields: [branchId], references: [id])
+  technicianId    String?
+  technician      User?     @relation("TechnicianTasks", fields: [technicianId], references: [id])
+  managerId       String?
+  manager         User?     @relation("InstallationManager", fields: [managerId], references: [id])
+  serviceType     String    // ONKM_ORNATISH, POS_ORNATISH, FM_ALMASHTIRISH, SERVIS
+  deviceName      String
+  serialNumber    String?
+  location        String?
+  scheduledDate   DateTime?
+  scheduledTime   String?
+  status          String    @default("YANGI") // YANGI, QABUL_QILINDI, YOLDA, ISH_BOSHLANDI, ORNATILDI, TEST_QILINDI, YAKUNLANDI, BEKOR_QILINDI
+  notes           String?
+  photoUrl        String?
+  completionDoc   String?
+  completionNotes String?
+  completedAt     DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+}
+
+model SupportTicket {
+  id           String           @id @default(cuid())
+  ticketNumber String           @unique
+  customerId   String
+  customer     Customer         @relation(fields: [customerId], references: [id])
+  branchId     String
+  branch       Branch           @relation(fields: [branchId], references: [id])
+  deviceName   String?
+  serialNumber String?
+  category     String           // KKM, POS, Terminal, Fiskal modul, OFD, Bank, Click, Payme, Paynet, HUMO, Dastur, Internet, Printer, Scanner, Boshqa
+  issue        String
+  priority     String           @default("ODDIY") // PAST, ODDIY, YUQORI, SHOSHILINCH
+  status       String           @default("YANGI") // YANGI, JARAYONDA, JAVOB_KUTILMOQDA, TEXNIKKA_BERILDI, YECHILDI, YOPILDI
+  assignedToId String?
+  assignedTo   User?            @relation("TicketHandler", fields: [assignedToId], references: [id])
+  technicianId String?
+  solution     String?
+  aiDiagnosis  String?
+  closedAt     DateTime?
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+  messages     SupportMessage[]
+}
+
+model SupportMessage {
+  id            String        @id @default(cuid())
+  ticketId      String
+  ticket        SupportTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  senderType    String        // USER, CUSTOMER, SYSTEM, BOT
+  senderId      String?
+  senderName    String
+  message       String
+  attachmentUrl String?
+  createdAt     DateTime      @default(now())
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id])
+  userName  String?
+  action    String   // LOGIN, LOGOUT, CREATE, UPDATE, DELETE, APPROVE, EXPORT
+  entity    String   // Customer, Order, Payment, Installation, User, etc.
+  entityId  String?
+  oldValue  String?
+  newValue  String?
+  ipAddress String?
+  userAgent String?
+  createdAt DateTime @default(now())
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title     String
+  message   String
+  type      String   @default("INFO") // INFO, SUCCESS, WARNING, DANGER
+  link      String?
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+}
+
+// --------------------------------------------------
+// HR & KPI MODELS
+// --------------------------------------------------
+
+model EmployeeProfile {
+  id               String    @id @default(cuid())
+  userId           String    @unique
+  user             User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  employeeId       String?   @unique
+  firstName        String?
+  lastName         String?
+  middleName       String?
+  birthDate        DateTime?
+  gender           String?   // ERKAK, AYOL
+  extraPhone       String?
+  telegram         String?
+  address          String?
+  hireDate         DateTime?
+  fireDate         DateTime?
+  workType         String?   // TO'LIQ_STAVKA, YARIM_STAVKA, SHARTNOMA, SINOV, BOSHQA
+  employmentStatus String?   // FAOL, SINOV, TA'TIL, NOFAOL, BOSHATILGAN, BLOKLANGAN
+  managerId        String?
+  manager          User?     @relation("EmployeeManager", fields: [managerId], references: [id])
+  notes            String?
+  
+  documents        EmployeeDocument[]
+  salary           EmployeeSalary?
+  kpiResults       KPIResult[]
+  activities       EmployeeActivity[]
+  statusHistory    EmployeeStatusHistory[]
+  
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+}
+
+model EmployeeDocument {
+  id                String          @id @default(cuid())
+  employeeProfileId String
+  employeeProfile   EmployeeProfile @relation(fields: [employeeProfileId], references: [id], onDelete: Cascade)
+  title             String
+  docType           String          // PASSPORT, SHARTNOMA, ARIZA, BUYRUQ, SERTIFIKAT, BOSHQA
+  fileUrl           String
+  fileSize          String?
+  uploadedAt        DateTime        @default(now())
+}
+
+model EmployeeSalary {
+  id                String          @id @default(cuid())
+  employeeProfileId String          @unique
+  employeeProfile   EmployeeProfile @relation(fields: [employeeProfileId], references: [id], onDelete: Cascade)
+  baseSalary        Float           @default(0)
+  currency          String          @default("UZS")
+  rate              Float           @default(1.0) // Stavka (1.0 = to'liq)
+  updatedAt         DateTime        @updatedAt
+}
+
+model KPI {
+  id          String      @id @default(cuid())
+  name        String
+  roleId      String?
+  role        Role?       @relation(fields: [roleId], references: [id])
+  type        String      // FOIZ, SUMMA
+  period      String      @default("MONTHLY") // DAILY, WEEKLY, MONTHLY, QUARTERLY, YEARLY, CUSTOM
+  description String?
+  isActive    Boolean     @default(true)
+  metrics     KPIMetric[]
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+}
+
+model KPIMetric {
+  id          String   @id @default(cuid())
+  kpiId       String
+  kpi         KPI      @relation(fields: [kpiId], references: [id], onDelete: Cascade)
+  name        String
+  source      String   // MANUAL, SALES, ORDERS, INSTALLATIONS, SUPPORT, WAREHOUSE
+  target      Float    @default(0)
+  weight      Float    @default(0) // %
+  maxResult   Float    @default(100) // %
+  formula     String?
+  createdAt   DateTime @default(now())
+}
+
+model KPIResult {
+  id                String          @id @default(cuid())
+  employeeProfileId String
+  employeeProfile   EmployeeProfile @relation(fields: [employeeProfileId], references: [id], onDelete: Cascade)
+  periodStart       DateTime
+  periodEnd         DateTime
+  totalScore        Float           @default(0)
+  totalBonus        Float           @default(0)
+  status            String          @default("DRAFT") // DRAFT, CALCULATED, CHECKED, APPROVED, CLOSED
+  approvedById      String?
+  approvedBy        User?           @relation("KPIApprover", fields: [approvedById], references: [id])
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+}
+
+model EmployeeActivity {
+  id                String          @id @default(cuid())
+  employeeProfileId String
+  employeeProfile   EmployeeProfile @relation(fields: [employeeProfileId], references: [id], onDelete: Cascade)
+  activityType      String          // SALE, SUPPORT, INSTALLATION, WAREHOUSE, ETC
+  description       String
+  amount            Float?
+  referenceId       String?
+  createdAt         DateTime        @default(now())
+}
+
+model EmployeeStatusHistory {
+  id                String          @id @default(cuid())
+  employeeProfileId String
+  employeeProfile   EmployeeProfile @relation(fields: [employeeProfileId], references: [id], onDelete: Cascade)
+  oldStatus         String
+  newStatus         String
+  changedById       String?
+  changedBy         User?           @relation("StatusChanger", fields: [changedById], references: [id])
+  reason            String?
+  createdAt         DateTime        @default(now())
+}
+
+model UserSession {
+  id           String    @id @default(cuid())
+  userId       String
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  token        String?   @unique
+  ipAddress    String?
+  userAgent    String?
+  deviceInfo   String?   // Masalan: Windows 11 / Chrome 128
+  loginAt      DateTime  @default(now())
+  lastActiveAt DateTime  @default(now())
+  logoutAt     DateTime?
+  durationMin  Int?      // Davomiyligi daqiqalarda
+  status       String    @default("ACTIVE") // ACTIVE, LOGGED_OUT, EXPIRED
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+}
+
+model SmsLog {
+  id        String   @id @default(cuid())
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  phone     String
+  message   String
+  code      String?
+  status    String   @default("SENT") // SENT, DELIVERED, FAILED
+  provider  String   @default("SIMULATED")
+  createdAt DateTime @default(now())
+}
+
+model PipelineStageConfig {
+  id          String   @id
+  name        String
+  color       String?
+  accentColor String?
+  order       Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model DeviceModelConfig {
+  id              String   @id @default(cuid())
+  modelName       String   @unique
+  deviceType      String   // ONKM, POS, FISKAL_MODUL, TERMINAL, PRINTER, BOSHQA
+  manufacturer    String?
+  monthlyFee      Float    @default(0) // Oylik abonent to'lovi (so'm)
+  yearlyFee       Float?   // Yillik abonent to'lovi (so'm)
+  billingCycle    String   @default("MONTHLY") // MONTHLY, YEARLY
+  gracePeriodDays Int      @default(5)
+  description     String?
+  isActive        Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+model Service {
+  id          String   @id @default(cuid())
+  name        String   // Xizmat nomi (Masalan: OFD Yillik Abonent Integratsiyasi)
+  price       Float    // Xizmat narxi (so'mda)
+  category    String   @default("ABONENT") // ABONENT, ORNATISH, DASTURIY, SERVIS, KONSULTATSIYA, BOSHQA
+  billingType String   @default("OYLIK") // OYLIK, BIR_MARTALIK, YILLIK, SOATLIK
+  description String?
+  isActive    Boolean  @default(true)
+  createdById String?
+  createdBy   User?    @relation("ServiceCreator", fields: [createdById], references: [id])
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+

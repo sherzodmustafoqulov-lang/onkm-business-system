@@ -153,16 +153,22 @@ export default function TicketChatDrawer({
   const context = data?.context360;
 
   return (
-    <div className="fixed inset-0 z-50 overflow-hidden bg-slate-900/60 backdrop-blur-sm flex justify-end animate-in fade-in duration-200">
-      <div className="w-full max-w-4xl bg-white h-full shadow-2xl flex flex-col border-l border-slate-200 animate-in slide-in-from-right duration-200">
+    <div
+      onClick={onClose}
+      className="fixed inset-0 z-50 overflow-hidden bg-slate-900/60 backdrop-blur-sm flex justify-end animate-in fade-in duration-200"
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        className="w-full max-w-3xl lg:max-w-4xl bg-white h-full shadow-2xl flex flex-col border-l border-slate-200 min-w-0"
+      >
         {/* Drawer Header */}
-        <div className="px-6 py-3.5 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="p-2.5 rounded-xl bg-rose-600 text-white shadow-md shadow-rose-500/20">
+        <div className="px-6 py-3.5 bg-slate-50 border-b border-slate-200 flex items-center justify-between flex-shrink-0">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="p-2.5 rounded-xl bg-rose-600 text-white shadow-md shadow-rose-500/20 flex-shrink-0">
               <Bot className="w-5 h-5" />
             </div>
-            <div>
-              <div className="flex items-center gap-2">
+            <div className="min-w-0">
+              <div className="flex items-center gap-2 flex-wrap">
                 <span className="font-mono text-sm font-bold text-slate-900">{ticket?.ticketNumber}</span>
                 <span className="text-xs font-semibold px-2.5 py-0.5 rounded-md bg-slate-200 text-slate-800">
                   {ticket?.category}
@@ -177,19 +183,19 @@ export default function TicketChatDrawer({
                   {ticket?.priority}
                 </span>
               </div>
-              <p className="text-xs text-slate-500 font-medium mt-0.5">
+              <p className="text-xs text-slate-500 font-medium mt-0.5 truncate">
                 {ticket?.customer?.companyName} • {ticket?.deviceName}
               </p>
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-shrink-0">
             {/* Status Dropdown */}
             {ticket && (
               <select
                 value={ticket.status}
                 onChange={(e) => handleStatusChange(e.target.value)}
-                className="px-2.5 py-1.5 bg-white border border-slate-300 rounded-lg text-xs font-bold text-slate-800 focus:ring-2 focus:ring-blue-500"
+                className="px-2.5 py-1.5 bg-white border border-slate-300 rounded-lg text-xs font-bold text-slate-800 focus:ring-2 focus:ring-blue-500 cursor-pointer shadow-xs"
               >
                 <option value="YANGI">Yangi</option>
                 <option value="JARAYONDA">Jarayonda</option>
@@ -202,7 +208,8 @@ export default function TicketChatDrawer({
 
             <button
               onClick={onClose}
-              className="p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-200/60 rounded-lg transition-colors"
+              title="Yopish (Esc)"
+              className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-200/60 rounded-lg transition-colors cursor-pointer"
             >
               <X className="w-5 h-5" />
             </button>
@@ -210,7 +217,7 @@ export default function TicketChatDrawer({
         </div>
 
         {/* Tab switcher: Chat vs 360 Context */}
-        <div className="flex items-center border-b border-slate-200 px-6 bg-slate-50/50">
+        <div className="flex items-center border-b border-slate-200 px-6 bg-slate-50/50 flex-shrink-0">
           <button
             onClick={() => setActiveTab('CHAT')}
             className={`py-2.5 px-4 text-xs font-bold border-b-2 transition-all flex items-center gap-2 ${
@@ -238,17 +245,19 @@ export default function TicketChatDrawer({
         </div>
 
         {/* Drawer Body */}
-        <div className="flex-1 overflow-hidden flex flex-col md:flex-row">
+        <div className="flex-1 overflow-hidden flex flex-col md:flex-row min-w-0">
           {activeTab === 'CHAT' ? (
             /* CHAT INTERFACE & AI DIAGNOSIS */
-            <div className="flex-1 flex flex-col h-full bg-slate-50/40">
+            <div className="flex-1 flex flex-col h-full bg-slate-50/40 min-w-0 overflow-hidden">
               {/* Issue Description Banner */}
-              <div className="p-3.5 bg-amber-50/70 border-b border-amber-200/60 text-xs text-amber-900 flex items-start justify-between gap-3">
-                <div>
+              <div className="p-3.5 bg-amber-50/80 border-b border-amber-200/70 text-xs text-amber-900 flex items-start justify-between gap-3 flex-shrink-0">
+                <div className="flex-1 min-w-0">
                   <span className="font-bold block text-[11px] uppercase tracking-wider text-amber-800 mb-0.5">
                     Murojaat sababi:
                   </span>
-                  <p className="text-xs text-slate-800">{ticket?.issue}</p>
+                  <p className="text-xs text-slate-800 break-words leading-relaxed font-medium">
+                    {ticket?.issue}
+                  </p>
                 </div>
                 <button
                   onClick={handleRunAiDiagnosis}
@@ -256,13 +265,13 @@ export default function TicketChatDrawer({
                   className="flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white rounded-lg text-xs font-bold shadow-sm transition-all disabled:opacity-50"
                 >
                   <Sparkles className={`w-3.5 h-3.5 ${aiLoading ? 'animate-spin' : ''}`} />
-                  <span>{aiLoading ? 'Tahlil qilinmoqda...' : 'AI Tahlil & Diagnostika'}</span>
+                  <span className="whitespace-nowrap">{aiLoading ? 'Tahlil...' : 'AI Diagnostika'}</span>
                 </button>
               </div>
 
               {/* AI Diagnosis Output Card (if generated) */}
               {aiOutput && (
-                <div className="p-3.5 m-3 bg-purple-50/80 border border-purple-200 rounded-xl text-xs space-y-2 animate-in fade-in duration-150">
+                <div className="p-3.5 m-3 bg-purple-50/90 border border-purple-200 rounded-xl text-xs space-y-2 animate-in fade-in duration-150 flex-shrink-0">
                   <div className="flex items-center justify-between text-purple-900 font-bold">
                     <span className="flex items-center gap-1.5">
                       <Sparkles className="w-4 h-4 text-purple-600" />
@@ -270,19 +279,19 @@ export default function TicketChatDrawer({
                     </span>
                     <button
                       onClick={() => setMsgInput((prev) => (prev ? prev + '\n' + aiOutput : aiOutput))}
-                      className="text-[11px] text-purple-700 hover:underline font-semibold"
+                      className="text-[11px] text-purple-700 hover:underline font-semibold cursor-pointer"
                     >
                       Chatga kiritish →
                     </button>
                   </div>
-                  <pre className="text-slate-800 text-[11px] whitespace-pre-wrap font-sans bg-white/70 p-2.5 rounded-lg border border-purple-100">
+                  <pre className="text-slate-800 text-[11px] whitespace-pre-wrap break-words font-sans bg-white/80 p-2.5 rounded-lg border border-purple-100 max-h-52 overflow-y-auto leading-relaxed">
                     {aiOutput}
                   </pre>
                 </div>
               )}
 
               {/* Chat Message List */}
-              <div className="flex-1 overflow-y-auto p-4 space-y-3">
+              <div className="flex-1 overflow-y-auto p-4 space-y-3 min-w-0">
                 {ticket?.messages?.map((m: any) => {
                   const isUser = m.senderType === 'USER';
                   const isCustomer = m.senderType === 'CUSTOMER';
@@ -291,7 +300,7 @@ export default function TicketChatDrawer({
                   return (
                     <div
                       key={m.id}
-                      className={`flex flex-col ${isUser ? 'items-end' : 'items-start'}`}
+                      className={`flex flex-col ${isUser ? 'items-end' : 'items-start'} max-w-full`}
                     >
                       <div className="flex items-center gap-1.5 text-[10px] text-slate-400 mb-0.5 px-1 font-semibold">
                         <span>{m.senderName}</span>
@@ -299,7 +308,7 @@ export default function TicketChatDrawer({
                         <span>{new Date(m.createdAt).toLocaleTimeString('uz', { hour: '2-digit', minute: '2-digit' })}</span>
                       </div>
                       <div
-                        className={`max-w-md p-3 rounded-2xl text-xs shadow-sm leading-relaxed ${
+                        className={`max-w-[85%] sm:max-w-[75%] p-3.5 rounded-2xl text-xs shadow-sm leading-relaxed break-words overflow-hidden ${
                           isUser
                             ? 'bg-blue-600 text-white rounded-br-none'
                             : isCustomer
@@ -307,16 +316,16 @@ export default function TicketChatDrawer({
                             : 'bg-purple-100 border border-purple-200 text-purple-900 rounded-bl-none'
                         }`}
                       >
-                        <p className="whitespace-pre-wrap">{m.message}</p>
+                        <p className="whitespace-pre-wrap break-words">{m.message}</p>
                         {m.attachmentUrl && (
                           <div className="mt-2 pt-2 border-t border-white/20">
                             <a
                               href={m.attachmentUrl}
                               target="_blank"
                               rel="noreferrer"
-                              className="text-[11px] underline flex items-center gap-1 font-semibold"
+                              className="text-[11px] underline flex items-center gap-1 font-semibold break-all"
                             >
-                              <Paperclip className="w-3 h-3" /> Biriktirilgan fayl / rasm
+                              <Paperclip className="w-3 h-3 flex-shrink-0" /> Biriktirilgan fayl / rasm
                             </a>
                           </div>
                         )}
@@ -328,34 +337,38 @@ export default function TicketChatDrawer({
               </div>
 
               {/* Quick Response Templates */}
-              <div className="px-4 py-2 bg-white border-t border-slate-200/80 flex items-center gap-1.5 overflow-x-auto text-[11px]">
-                <span className="text-[10px] font-bold uppercase text-slate-400 whitespace-nowrap mr-1">
+              <div className="px-4 py-2 bg-white border-t border-slate-200/80 flex items-center gap-2 overflow-x-auto text-[11px] w-full min-w-0 flex-shrink-0">
+                <span className="text-[10px] font-bold uppercase text-slate-400 whitespace-nowrap flex-shrink-0">
                   Shablonlar:
                 </span>
-                {QUICK_TEMPLATES.map((tmpl, idx) => (
-                  <button
-                    key={idx}
-                    onClick={() => setMsgInput(tmpl)}
-                    className="px-2.5 py-1 bg-slate-100 hover:bg-blue-50 hover:text-blue-700 text-slate-600 rounded-full whitespace-nowrap transition-colors"
-                  >
-                    {tmpl.slice(0, 30)}...
-                  </button>
-                ))}
+                <div className="flex items-center gap-1.5 overflow-x-auto py-0.5 w-full min-w-0">
+                  {QUICK_TEMPLATES.map((tmpl, idx) => (
+                    <button
+                      key={idx}
+                      type="button"
+                      onClick={() => setMsgInput(tmpl)}
+                      title={tmpl}
+                      className="px-2.5 py-1 bg-slate-100 hover:bg-blue-50 hover:text-blue-700 text-slate-600 rounded-full whitespace-nowrap transition-colors border border-slate-200/60 text-[11px] flex-shrink-0 cursor-pointer"
+                    >
+                      {tmpl.length > 35 ? tmpl.slice(0, 35) + '…' : tmpl}
+                    </button>
+                  ))}
+                </div>
               </div>
 
               {/* Chat Input Bar */}
-              <form onSubmit={handleSendMessage} className="p-3 bg-white border-t border-slate-200 flex items-center gap-2">
+              <form onSubmit={handleSendMessage} className="p-3.5 bg-white border-t border-slate-200 flex items-center gap-2 w-full min-w-0 flex-shrink-0">
                 <input
                   type="text"
                   value={msgInput}
                   onChange={(e) => setMsgInput(e.target.value)}
                   placeholder="Mijozga javob yoki ichki izoh yozing..."
-                  className="flex-1 px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white"
+                  className="flex-1 min-w-0 px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white"
                 />
                 <button
                   type="submit"
                   disabled={sendingMsg || !msgInput.trim()}
-                  className="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold shadow-sm transition-all disabled:opacity-50 flex items-center gap-1.5"
+                  className="flex-shrink-0 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold shadow-sm transition-all disabled:opacity-50 flex items-center gap-1.5 cursor-pointer"
                 >
                   <Send className="w-3.5 h-3.5" />
                   <span>Yuborish</span>
